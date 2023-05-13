@@ -7,6 +7,60 @@
 #include <sys/socket.h>
 #include<cstdio>
 
+class MyClient{
+    private:
+
+        int socketfd;
+        sockaddr_in serv_addr;
+
+    public:
+
+        MyClient() : socketfd(-1){}
+
+        ~MyClient(){
+            std::cout<<"Socket Programe Exit"<<std::endl;
+        };
+
+        bool Create_Socket(){
+            socketfd =socket(AF_INET, SOCK_STREAM, 0);
+
+            return (socketfd!=-1);
+
+        }
+        
+        bool connect(const std::string& ServerIp, const std::string& ServerPort){
+            sockaddr_in serverAddress{};
+        serverAddress.sin_family = AF_INET;
+        serverAddress.sin_port = htons(atoi(ServerPort.c_str()));
+        if (inet_pton(AF_INET, ServerIp.c_str(), &(serverAddress.sin_addr)) <= 0) {
+            std::cout << "Invalid server IP address" << std::endl;
+            return false;
+        }
+
+        if (::connect(socketfd, reinterpret_cast<sockaddr*>(&serverAddress), sizeof(serverAddress)) == -1) {
+            std::cout << "Failed to connect to server" << std::endl;
+            return false;
+        }
+
+        return true;
+        }
+
+        ssize_t send(const std::string& data) {
+            return ::send(socketfd, data.c_str(), data.length(), 0);
+        }
+
+        ssize_t receive(std::string& buffer, size_t bufferSize) {
+            buffer.resize(bufferSize);
+            ssize_t bytesRead = ::recv(socketfd, &buffer[0], bufferSize, 0);
+            buffer.resize(bytesRead);
+            return bytesRead;
+        }
+        void close() {
+            ::close(socketfd);
+            socketfd = -1;
+        }
+};
+
 int main(int argc, char* argv[]) {
     std::string ServerIp, ServerPort, File, ServerPath;
 
@@ -43,36 +97,23 @@ int main(int argc, char* argv[]) {
             std::cout << "Options Failed." << std::endl;
             return 1;
     }
-    const char* ServerIpStr = ServerIp.c_str();
-    const char* ServerPortStr = ServerPort.c_str();
-    const char* FileStr = File.c_str();
-    const char* ServerPathStr = ServerPath.c_str();
-    int sock=socket(PF_INET, SOCK_STREAM, 0);
-    if(sock == -1){
 
+    MyClient mc;
+
+   
+    if(!mc.Create_Socket()){
+        std::cout<<"Socket Create Error"<<std::endl;
+        return 1;
+    }
+    if(!mc.connect(ServerIp, ServerPort)){
+        std::cout<<"Socket Connect Error"<<std::endl;
+        return 1;
     }
 
-    
-    struct sockaddr_in serv_addr;
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family=AF_INET;
-    serv_addr.sin_addr.s_addr=inet_addr(ServerIpStr);
-    serv_addr.sin_port=htons(atoi(ServerPortStr));
+    std::string message = "Hello, server";
+    mc.send(message);
 
-    if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))==-1) {
-
-    }
-
-    char message[30];
-    int str_len;
-    str_len=read(sock, message, sizeof(message)-1);
-    if(str_len==-1){
-
-    }
-    write(sock, ServerPathStr, sizeof(ServerPathStr));
-	
-    printf("Message from server: %s \n", message);  
-    close(sock);
+    mc.close();
 
     return 0;
 }

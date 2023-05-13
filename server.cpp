@@ -7,6 +7,73 @@
 #include<stdlib.h>
 #include<string.h>
 
+class MyServer{
+
+    private:
+        int socketfd;
+        int clientSocketfd;
+    public:
+        MyServer() : socketfd(-1), clientSocketfd(-1){}
+        ~MyServer(){
+            std::cout<<"Socket Programe Exit"<<std::endl;
+        }
+
+        bool create(const std::string& Port){
+            socketfd = socket(AF_INET, SOCK_STREAM, 0);
+            if(socketfd==-1){
+                return false;
+            }
+
+            sockaddr_in serv_addr{};
+            serv_addr.sin_family = AF_INET;
+            serv_addr.sin_addr.s_addr = INADDR_ANY;
+            serv_addr.sin_port=htons(atoi(Port.c_str()));
+
+
+            if (bind(socketfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr)) == -1) {
+                std::cout << "Failed to bind server socket" << std::endl;
+                return false;
+            }
+
+            if (listen(socketfd, 5) == -1) {
+                std::cout << "Failed to listen on server socket" << std::endl;
+                return false;
+            }
+
+            return true;
+        }
+
+        bool accept(){
+            sockaddr_in client_addr{};
+            socklen_t clientAddressLength = sizeof(client_addr);
+            clientSocketfd = ::accept(socketfd, reinterpret_cast<sockaddr*>(&client_addr), &clientAddressLength);
+
+            if(clientSocketfd == -1){
+                std::cout<<"Client Socket Connect Failed"<<std::endl;
+                return false;
+            }
+            return true;
+        }
+
+        ssize_t send(const std::string& data) {
+        return ::send(clientSocketfd, data.c_str(), data.length(), 0);
+    }
+
+    ssize_t receive(std::string& buffer, size_t bufferSize) {
+        buffer.resize(bufferSize);
+        ssize_t bytesRead = ::recv(clientSocketfd, &buffer[0], bufferSize, 0);
+        buffer.resize(bytesRead);
+        return bytesRead;
+    }
+
+    void close() {
+        ::close(clientSocketfd);
+        ::close(socketfd);
+        clientSocketfd = -1;
+        socketfd = -1;
+    }
+};
+
 int main(int argc, char* argv[]) {
     std::string Port;
 
@@ -24,55 +91,25 @@ int main(int argc, char* argv[]) {
         std::cout << "Options Failed" << std::endl;
         return 1;
     }
-    // 소켓 생성
-    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket == -1) {
-        std::cout << "Failed Socket Create" << std::endl;
-        return 1;
+
+
+    MyServer ms;
+
+    if(!ms.create(Port)){
+        std::cout<<"Socket Create Error"<<std::endl;
+        return -1;
     }
-    const char* portStr = Port.c_str();
 
-    int socketfd = socket(PF_INET, SOCK_STREAM, 0);
-    if (socketfd == -1) {
-        // 소켓 생성 실패
-        // 오류 처리
+    if(!ms.accept()){
+        std::cout<<"Socket Accept Error"<<std::endl;
+        return -1;
     }
-    struct sockaddr_in serv_addr;
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family=AF_INET;
-    // INADDR_ANY는 서버 자신의 IP주소
-    serv_addr.sin_addr.s_addr=htonl(INADDR_ANY);
-    const char* PortStr = Port.c_str();
-    serv_addr.sin_port=htons(atoi(PortStr));
 
-     if(bind(socketfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr))==-1 ){
+    std::string recv_data;
+    ms.receive(recv_data, 1024);
+    std::cout<<recv_data<<std::endl;
 
-     }
-        //error_handling("bind() error"); 
-    if(listen(socketfd, 5)==-1){
-
-    }
-        //error_handling("listen() error");
-
-
-    struct sockaddr_in clientAddress;
-
-    socklen_t clnt_addr_size=sizeof(clientAddress);
-    int clnt_sock=accept(socketfd, (struct sockaddr*)&socketfd,&clnt_addr_size);
-    if(clnt_sock==-1){
-
-    }
-        //error_handling("accept() error"); 
-
-    char message[]="Hello World!";
-    write(clnt_sock, message, sizeof(message));
-    // 서버, 클라이언트 소켓의 연결을 해제
-
-    read(clnt_sock, message, sizeof(message)-1);
-
-    std::cout<<message<<std::endl;
-
-    close(clnt_sock);	
+    ms.close();
     
     return 0;
 }
