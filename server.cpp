@@ -6,6 +6,7 @@
 #include <unistd.h>      // 파일 디스크립터 관련 함수
 #include<stdlib.h>
 #include<string.h>
+#include<fstream>
 
 class MyServer{
 
@@ -69,7 +70,7 @@ class MyServer{
         if(bytesRead >= 0){
             buffer[bytesRead] = '\0';
             File_Path = buffer;
-            std::cout<<File_Path<<std::endl;
+            //std::cout<<File_Path<<std::endl;
         }
         return bytesRead;
     }
@@ -86,6 +87,19 @@ class MyServer{
         ::close(socketfd);
         clientSocketfd = -1;
         socketfd = -1;
+    }
+
+    bool MakeFile(){
+        std::ofstream out(File_Path);
+
+        if(out.is_open()){
+            std::cout<<"Success Create File"<<std::endl;
+            
+        }
+        else{
+            std::cout<<"Failed Create File"<<std::endl;
+            return false;
+        }
     }
 };
 
@@ -120,11 +134,10 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    ms.Basic_receive();
+    ms.MakeFile();
 
-   std::string recv_data;
-    ms.receive(recv_data, 1024);
-    std::cout<<recv_data<<std::endl;
-
+    
     ms.close();
     
     return 0;

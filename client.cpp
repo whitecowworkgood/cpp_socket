@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include<cstdio>
+#include<fstream>
 
 class MyClient{
     private:
@@ -58,6 +59,17 @@ class MyClient{
             ssize_t bytesRead = ::recv(socketfd, &buffer[0], bufferSize, 0);
             buffer.resize(bytesRead);
             return bytesRead;
+        }
+
+        bool Proof_File(const std::string& File){
+            std::ifstream in(File);
+
+            if(!in.is_open()){
+                return false;
+            }
+            in.close();
+
+            return true;
         }
         void close() {
             ::close(socketfd);
@@ -114,9 +126,15 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    mc.Basic_send( ServerPath+File);
+    if(!mc.Proof_File(File)){
+        std::cout<<"Not Have a File"<<std::endl;
+        mc.close();
+        return 0;
+    }
+    else{
+        mc.Basic_send(ServerPath+File);
 
-    mc.close();
-
-    return 0;
+        mc.close();
+        return 0;
+    }
 }
