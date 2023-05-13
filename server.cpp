@@ -74,7 +74,12 @@ class MyServer{
                 buffer[bytesRead] = '\0';
                 File_Path = buffer;
             }
-
+            if(std::ifstream(buffer)){
+                if(std::remove(buffer) != 0){
+                    std::cout<<"Remove File Error"<<std::endl;
+                }
+                std::cout<<"Remove File"<<std::endl;
+            }
             std::ofstream file(buffer, std::ios::binary|std::ios::app);
             if(file.is_open()){
                 std::cout<<"file create success"<<std::endl;

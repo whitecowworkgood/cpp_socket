@@ -58,12 +58,18 @@ class MyClient{
                 std::ifstream file(File, std::ios::binary);
 
                 if(file.is_open()){
+                    std::hash<std::string> hasher;
                     std::streamsize bytesRead;
                     do{
                         file.read(buffer, 1024);
                         bytesRead = file.gcount();
                         buffer[bytesRead] ='\0';
                         
+                        
+                        size_t hashValue = hasher(buffer);
+
+                        std::cout << "Hash value: " << hashValue << std::endl;
+
                         ssize_t byteSent = ::send(socketfd, buffer, sizeof(buffer), 0);
                         if(byteSent<=0){
                             std::cout<<"Failed to send data"<<std::endl;
@@ -72,27 +78,15 @@ class MyClient{
                         }
 
                         ::recv(socketfd, buffer, sizeof(buffer), 0);
-                        std::cout<<buffer<<std::endl;
+                        //std::cout<<buffer<<std::endl;
 
                     }while(!file.eof());
 
                     send(socketfd, "eof", sizeof("eof"), 0);
-                    std::cout<<"eof"<<std::endl;
+                    std::cout<<"File Upload Successed"<<std::endl;
 
                     file.close();
                     return true;
-                    //send(socketfd, "test", sizeof("test"), 0);
-
-
-                    /*
-                    while(!file.eof()){
-                        
-                        if()
-                        ::send();
-
-                        ::recv();
-                    }
-                    */
                 }
             }
 
