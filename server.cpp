@@ -19,8 +19,6 @@ class MyServer{
 
         std::string ReadyFlag = "ready";
 
-        std::string File_Path;
-
         char buffer[1025] = {'\0',};
         
     public:
@@ -80,15 +78,16 @@ class MyServer{
 
         //나중에 데이터 통신시, 수신 확인 및 다음 패킷 전송 요청용을 만들 예정
         void receiveFile(int clientSocketfd) {
-            
+            std::string file_path;
 
             ssize_t bytesRead = ::recv(clientSocketfd, buffer, sizeof(buffer),0);
             if(bytesRead >= 0){
                 buffer[bytesRead] = '\0';
-                File_Path = buffer;
+                file_path = buffer;
+                std::cout<<file_path<<std::endl;
             }
-            if(std::ifstream(buffer)){
-                if(std::remove(buffer) != 0){
+            if(std::ifstream(file_path)){
+                if(std::remove(file_path.c_str()) != 0){
                     std::cout<<"Remove File Error"<<std::endl;
                 }
                 std::cout<<"Remove File"<<std::endl;
@@ -110,7 +109,7 @@ class MyServer{
 
                 }
                 file.close();
-                std::cout<<"File Received Successed! : "<<File_Path<<std::endl;
+                std::cout<<"File Received Successed! : "<<file_path<<std::endl;
             }
             
             ::close(clientSocketfd);
@@ -153,14 +152,8 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    int clientSocketfd = ms.accept();
-
-    if(clientSocketfd == -1){
-        std::cout<<"socket Accept Error"<<std::endl;
-        return -1;
-    }
-
     ms.threadService();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     
     ms.close();
     
