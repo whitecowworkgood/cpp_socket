@@ -12,6 +12,9 @@ class MyServer{
     private:
         int socketfd;
         int clientSocketfd;
+
+        std::string File_Path;
+        char buffer[1024];
     public:
         MyServer() : socketfd(-1), clientSocketfd(-1){}
         ~MyServer(){
@@ -59,6 +62,18 @@ class MyServer{
         return ::send(clientSocketfd, data.c_str(), data.length(), 0);
     }
 
+    ssize_t Basic_receive() {
+
+        ssize_t bytesRead = ::recv(clientSocketfd, buffer, sizeof(buffer), 0);
+        //buffer.resize(bytesRead);
+        if(bytesRead >= 0){
+            buffer[bytesRead] = '\0';
+            File_Path = buffer;
+            std::cout<<File_Path<<std::endl;
+        }
+        return bytesRead;
+    }
+    //나중에 데이터 통신시, 수신 확인 및 다음 패킷 전송 요청용을 만들 예정
     ssize_t receive(std::string& buffer, size_t bufferSize) {
         buffer.resize(bufferSize);
         ssize_t bytesRead = ::recv(clientSocketfd, &buffer[0], bufferSize, 0);
@@ -105,7 +120,8 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    std::string recv_data;
+
+   std::string recv_data;
     ms.receive(recv_data, 1024);
     std::cout<<recv_data<<std::endl;
 

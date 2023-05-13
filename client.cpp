@@ -44,7 +44,11 @@ class MyClient{
 
         return true;
         }
-
+        //처음 연결시, 경로와 파일명을 보내기 위한 용
+        ssize_t Basic_send(const std::string& data) {
+            return ::send(socketfd, data.c_str(), data.length(), 0);
+        }
+        //나중에 데이터 전송용으로 오버로딩 용
         ssize_t send(const std::string& data) {
             return ::send(socketfd, data.c_str(), data.length(), 0);
         }
@@ -110,8 +114,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string message = "Hello, server";
-    mc.send(message);
+    mc.Basic_send( ServerPath+File);
 
     mc.close();
 
