@@ -8,22 +8,23 @@
 #include<string.h>
 #include<fstream>
 #include<functional>
+#include<vector>
+#include<thread>
 
 class MyServer{
 
     private:
         int socketfd;
-        int clientSocketfd;
+        std::vector<int> clientSocketfds;
 
         std::string ReadyFlag = "ready";
-        std::string StopFlag = "stop";
 
         std::string File_Path;
 
         char buffer[1025] = {'\0',};
         
     public:
-        MyServer() : socketfd(-1), clientSocketfd(-1){}
+        MyServer() : socketfd(-1){}
         ~MyServer(){
             std::cout<<"Socket Programe Exit"<<std::endl;
         }
@@ -52,21 +53,33 @@ class MyServer{
 
             return true;
         }
-
-        bool accept(){
+        int accept(){
             sockaddr_in client_addr{};
             socklen_t clientAddressLength = sizeof(client_addr);
-            clientSocketfd = ::accept(socketfd, reinterpret_cast<sockaddr*>(&client_addr), &clientAddressLength);
+            int clientSocketfd = ::accept(socketfd, reinterpret_cast<sockaddr*>(&client_addr), &clientAddressLength);
 
             if(clientSocketfd == -1){
                 std::cout<<"Client Socket Connect Failed"<<std::endl;
-                return false;
+                return -1;
             }
-            return true;
+            return clientSocketfd;
+        }
+        void threadService(){
+
+            while(true){
+                int clientSocketfd = accept();
+                if(clientSocketfd != -1){
+                    clientSocketfds.push_back(clientSocketfd);
+                    std::thread clientThread(&MyServer::receiveFile, this, clientSocketfd);
+                    clientThread.detach();
+                }
+            
+            }
+            
         }
 
         //나중에 데이터 통신시, 수신 확인 및 다음 패킷 전송 요청용을 만들 예정
-        bool receiveFile() {
+        void receiveFile(int clientSocketfd) {
             
 
             ssize_t bytesRead = ::recv(clientSocketfd, buffer, sizeof(buffer),0);
@@ -100,14 +113,15 @@ class MyServer{
                 std::cout<<"File Received Successed! : "<<File_Path<<std::endl;
             }
             
-            return true;
+            ::close(clientSocketfd);
         }
 
 
     void close() {
-        ::close(clientSocketfd);
+        for(int clientSocketfd:clientSocketfds){
+            ::close(clientSocketfd);
+        }
         ::close(socketfd);
-        clientSocketfd = -1;
         socketfd = -1;
     }
 
@@ -139,12 +153,14 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    if(!ms.accept()){
-        std::cout<<"Socket Accept Error"<<std::endl;
+    int clientSocketfd = ms.accept();
+
+    if(clientSocketfd == -1){
+        std::cout<<"socket Accept Error"<<std::endl;
         return -1;
     }
 
-    ms.receiveFile();
+    ms.threadService();
     
     ms.close();
     
