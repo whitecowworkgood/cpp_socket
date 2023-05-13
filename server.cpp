@@ -7,6 +7,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<fstream>
+#include<functional>
 
 class MyServer{
 
@@ -14,8 +15,13 @@ class MyServer{
         int socketfd;
         int clientSocketfd;
 
+        std::string ReadyFlag = "ready";
+        std::string StopFlag = "stop";
+
         std::string File_Path;
-        char buffer[1024];
+
+        char buffer[1025] = {'\0',};
+        
     public:
         MyServer() : socketfd(-1), clientSocketfd(-1){}
         ~MyServer(){
@@ -59,28 +65,39 @@ class MyServer{
             return true;
         }
 
-        ssize_t send(const std::string& data) {
-        return ::send(clientSocketfd, data.c_str(), data.length(), 0);
-    }
+        //나중에 데이터 통신시, 수신 확인 및 다음 패킷 전송 요청용을 만들 예정
+        bool receiveFile() {
+            
 
-    ssize_t Basic_receive() {
+            ssize_t bytesRead = ::recv(clientSocketfd, buffer, sizeof(buffer),0);
+            if(bytesRead >= 0){
+                buffer[bytesRead] = '\0';
+                File_Path = buffer;
+            }
 
-        ssize_t bytesRead = ::recv(clientSocketfd, buffer, sizeof(buffer), 0);
-        //buffer.resize(bytesRead);
-        if(bytesRead >= 0){
-            buffer[bytesRead] = '\0';
-            File_Path = buffer;
-            //std::cout<<File_Path<<std::endl;
+            std::ofstream file(buffer, std::ios::binary|std::ios::app);
+            if(file.is_open()){
+                std::cout<<"file create success"<<std::endl;
+                ::send(clientSocketfd, ReadyFlag.c_str(), ReadyFlag.length(), 0);
+               
+                while(true){
+
+                    bytesRead = ::recv(clientSocketfd, buffer, sizeof(buffer), 0);
+                    if(strcmp(buffer, "eof") == 0){
+                        break;
+                    }
+                    file<<buffer;
+
+                    ::send(clientSocketfd, "received", sizeof("received"), 0);
+
+                }
+                file.close();
+                std::cout<<"File Received Successed! : "<<File_Path<<std::endl;
+            }
+            
+            return true;
         }
-        return bytesRead;
-    }
-    //나중에 데이터 통신시, 수신 확인 및 다음 패킷 전송 요청용을 만들 예정
-    ssize_t receive(std::string& buffer, size_t bufferSize) {
-        buffer.resize(bufferSize);
-        ssize_t bytesRead = ::recv(clientSocketfd, &buffer[0], bufferSize, 0);
-        buffer.resize(bytesRead);
-        return bytesRead;
-    }
+
 
     void close() {
         ::close(clientSocketfd);
@@ -89,18 +106,6 @@ class MyServer{
         socketfd = -1;
     }
 
-    bool MakeFile(){
-        std::ofstream out(File_Path);
-
-        if(out.is_open()){
-            std::cout<<"Success Create File"<<std::endl;
-            
-        }
-        else{
-            std::cout<<"Failed Create File"<<std::endl;
-            return false;
-        }
-    }
 };
 
 int main(int argc, char* argv[]) {
@@ -134,9 +139,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    ms.Basic_receive();
-    ms.MakeFile();
-
+    ms.receiveFile();
     
     ms.close();
     
