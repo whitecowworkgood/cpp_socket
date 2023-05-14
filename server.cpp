@@ -116,7 +116,7 @@ class MyServer{
                 std::string fileHash = calculateFileHash(file_path);
                 std::cout<<"filehash : "<<fileHash<<std::endl;
 
-                ::send(clientSocketfd, fileHash.c_str(), sizeof(fileHash), 0);
+                ::send(clientSocketfd, fileHash.c_str(), fileHash.length(), 0);
 
                 ::recv(clientSocketfd, buffer, sizeof(buffer), 0);
                 std::cout<<buffer<<std::endl;
