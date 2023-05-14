@@ -8,6 +8,9 @@
 #include<cstdio>
 #include<fstream>
 #include<functional>
+#include<openssl/md5.h>
+#include <iomanip>
+#include<sstream>
 
 class MyClient{
     private:
@@ -15,6 +18,7 @@ class MyClient{
         int socketfd;
         sockaddr_in serv_addr;
         char buffer[1025]={'\0',};
+        char hash[128] = {'\0'};
 
     public:
 
@@ -65,12 +69,8 @@ class MyClient{
                         bytesRead = file.gcount();
                         buffer[bytesRead] ='\0';
                         
-                        
-                        size_t hashValue = hasher(buffer);
-
-                        std::cout << "Hash value: " << hashValue << std::endl;
-
                         ssize_t byteSent = ::send(socketfd, buffer, sizeof(buffer), 0);
+                        
                         if(byteSent<=0){
                             std::cout<<"Failed to send data"<<std::endl;
                             file.close();
@@ -78,27 +78,68 @@ class MyClient{
                         }
 
                         ::recv(socketfd, buffer, sizeof(buffer), 0);
-                        //std::cout<<buffer<<std::endl;
 
                     }while(!file.eof());
 
                     send(socketfd, "eof", sizeof("eof"), 0);
-                    std::cout<<"File Upload Successed"<<std::endl;
-
                     file.close();
-                    return true;
+
+                    ::recv(socketfd, hash, sizeof(hash), 0);
+
+                    std::string fileHash = calculateFileHash(File);
+                    std::cout<<"File Hash : "<<fileHash<<std::endl;
+
+                    std::cout<<"recv hash : "<<hash<<std::endl;
+
+
+                    if(std::string(hash) == fileHash){
+                        ::send(socketfd, "compare", sizeof("compare"), 0);
+                        std::cout<<"File Upload Successed"<<std::endl;
+                        
+                    }
+                    else{
+                        ::send(socketfd, "diff", sizeof("diff"), 0);
+                        std::cout<<"File Diffrent and will remove file at server"<<std::endl;
+                        return false;
+                    }
+                   
                 }
             }
-
             return true;
         }
-
+        /*
         ssize_t receive(std::string& buffer, size_t bufferSize) {
             buffer.resize(bufferSize);
             ssize_t bytesRead = ::recv(socketfd, &buffer[0], bufferSize, 0);
             buffer.resize(bytesRead);
             return bytesRead;
         }
+        */
+
+        std::string calculateFileHash(const std::string& file_path){
+        std::ifstream file(file_path, std::ios::binary);
+        if(!file){
+            std::cout<<"Failed open file"<<std::endl;
+            return "";
+        }
+        MD5_CTX md5Context;
+        MD5_Init(&md5Context);
+
+        char buffer[1024];
+        while(file.read(buffer, sizeof(buffer)).gcount()>0){
+            MD5_Update(&md5Context, buffer, file.gcount());
+        }
+        unsigned char hash[16];
+        MD5_Final(hash, &md5Context);
+
+        std::stringstream hashValue;
+        for(int i=0; i<16; i++){
+            hashValue<<std::hex<<std::setw(2)<<std::setfill('0')<<static_cast<int>(hash[i]);
+        }
+
+        return hashValue.str();
+
+    }
         void close() {
             ::close(socketfd);
             socketfd = -1;

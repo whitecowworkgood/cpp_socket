@@ -10,6 +10,9 @@
 #include<functional>
 #include<vector>
 #include<thread>
+#include<openssl/md5.h>
+#include <iomanip>
+#include<sstream>
 
 class MyServer{
 
@@ -76,7 +79,6 @@ class MyServer{
             
         }
 
-        //나중에 데이터 통신시, 수신 확인 및 다음 패킷 전송 요청용을 만들 예정
         void receiveFile(int clientSocketfd) {
             std::string file_path;
 
@@ -84,17 +86,17 @@ class MyServer{
             if(bytesRead >= 0){
                 buffer[bytesRead] = '\0';
                 file_path = buffer;
-                std::cout<<file_path<<std::endl;
+                //std::cout<<file_path<<std::endl;
             }
             if(std::ifstream(file_path)){
                 if(std::remove(file_path.c_str()) != 0){
                     std::cout<<"Remove File Error"<<std::endl;
                 }
-                std::cout<<"Remove File"<<std::endl;
+                //std::cout<<"Remove File"<<std::endl;
             }
             std::ofstream file(buffer, std::ios::binary|std::ios::app);
             if(file.is_open()){
-                std::cout<<"file create success"<<std::endl;
+                //std::cout<<"file create success"<<std::endl;
                 ::send(clientSocketfd, ReadyFlag.c_str(), ReadyFlag.length(), 0);
                
                 while(true){
@@ -108,14 +110,55 @@ class MyServer{
                     ::send(clientSocketfd, "received", sizeof("received"), 0);
 
                 }
+                
                 file.close();
-                std::cout<<"File Received Successed! : "<<file_path<<std::endl;
+
+                std::string fileHash = calculateFileHash(file_path);
+                std::cout<<"filehash : "<<fileHash<<std::endl;
+
+                ::send(clientSocketfd, fileHash.c_str(), sizeof(fileHash), 0);
+
+                ::recv(clientSocketfd, buffer, sizeof(buffer), 0);
+                std::cout<<buffer<<std::endl;
+                if(strcmp(buffer, "compare") == 0){
+                    std::cout<<"File Received Successed! : "<<file_path<<"\n"<<"hash value : "<<fileHash<<std::endl;
+                }
+                else if(strcmp(buffer, "diff") == 0){
+                    std::cout<<"diffrent file will remove file"<<std::endl;
+                    if(std::remove(file_path.c_str()) != 0){
+                        std::cout<<"Remove File Error"<<std::endl;
+                    }
+                }
+                
             }
             
             ::close(clientSocketfd);
         }
 
+    std::string calculateFileHash(const std::string& file_path){
+        std::ifstream file(file_path, std::ios::binary);
+        if(!file){
+            std::cout<<"Failed open file"<<std::endl;
+            return "";
+        }
+        MD5_CTX md5Context;
+        MD5_Init(&md5Context);
 
+        char buffer[1024];
+        while(file.read(buffer, sizeof(buffer)).gcount()>0){
+            MD5_Update(&md5Context, buffer, file.gcount());
+        }
+        unsigned char hash[16];
+        MD5_Final(hash, &md5Context);
+
+        std::stringstream hashValue;
+        for(int i=0; i<16; i++){
+            hashValue<<std::hex<<std::setw(2)<<std::setfill('0')<<static_cast<int>(hash[i]);
+        }
+
+        return hashValue.str();
+
+    }
     void close() {
         for(int clientSocketfd:clientSocketfds){
             ::close(clientSocketfd);
