@@ -1,4 +1,4 @@
-#include"../../includes/header.h"
+#include"header.h"
 
 bool MyServer::create(const std::string& Port){
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -72,14 +72,14 @@ void MyServer::receiveFile(int clientSocketfd) {
         file.close();
 
         std::string fileHash = calculateFileHash(file_path);
-        std::cout<<"filehash : "<<fileHash<<std::endl;
+        //std::cout<<"filehash : "<<fileHash<<std::endl;
 
         ::send(clientSocketfd, fileHash.c_str(), fileHash.length(), 0);
 
         ::recv(clientSocketfd, buffer, sizeof(buffer), 0);
-        std::cout<<buffer<<std::endl;
+        //std::cout<<buffer<<std::endl;
         if(strcmp(buffer, "compare") == 0){
-            std::cout<<"File Received Successed! : "<<file_path<<"\n"<<"hash value : "<<fileHash<<std::endl;
+            std::cout<<"File Received Successed! : "<<file_path<<std::endl;
         }
         else if(strcmp(buffer, "diff") == 0){
             std::cout<<"diffrent file will remove file"<<std::endl;

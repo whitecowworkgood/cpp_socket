@@ -1,4 +1,4 @@
-#include"../../includes/header.h"
+#include"header.h"
 
 bool MyClient::Create_Socket(){
     socketfd =socket(AF_INET, SOCK_STREAM, 0);
@@ -55,9 +55,9 @@ bool MyClient::sendFile(const std::string& ServerPath, const std::string& File){
             ::recv(socketfd, hash, sizeof(hash), 0);
 
             std::string fileHash = calculateFileHash(File);
-            std::cout<<"File Hash : "<<fileHash<<std::endl;
+            //std::cout<<"File Hash : "<<fileHash<<std::endl;
 
-            std::cout<<"recv hash : "<<hash<<std::endl;
+           // std::cout<<"recv hash : "<<hash<<std::endl;
 
             if(std::string(hash) == fileHash){
                 ::send(socketfd, "compare", sizeof("compare"), 0);
