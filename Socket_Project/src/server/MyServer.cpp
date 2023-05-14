@@ -44,19 +44,41 @@ void MyServer::threadService(){
     }
 }
 void MyServer::receiveFile(int clientSocketfd) {
-    std::string file_path;
+
     ssize_t bytesRead = ::recv(clientSocketfd, buffer, sizeof(buffer),0);
 
     if(bytesRead >= 0){
         buffer[bytesRead] = '\0';
         file_path = buffer;
+        //std::cout<<file_path<<std::endl;
+
+        if(!(std::filesystem::exists(std::filesystem::path(file_path)))){
+            std::filesystem::create_directories(std::filesystem::path(file_path));
+        }
     }
-    if(std::ifstream(file_path)){
-        if(std::remove(file_path.c_str()) != 0){
+    else{
+        std::cout<<"File_Path Not Receive"<<std::endl;
+        close();
+    }
+
+    bytesRead = ::recv(clientSocketfd, buffer, sizeof(buffer),0);
+    if(bytesRead >= 0){
+        buffer[bytesRead] = '\0';
+        file_name = buffer;
+        //std::cout<<file_name<<std::endl;
+    }
+    else{
+        std::cout<<"File_name Not Receive"<<std::endl;
+        close();
+    }
+    std::filesystem::path p((file_path+"/"+file_name));
+    if(std::filesystem::exists(p)){
+        if(std::remove((file_path+"/"+file_name).c_str()) != 0){
             std::cout<<"Remove File Error"<<std::endl;
         }
     }
-    std::ofstream file(buffer, std::ios::binary|std::ios::app);
+
+    std::ofstream file((file_path+"/"+file_name), std::ios::binary|std::ios::app);
     if(file.is_open()){
         ::send(clientSocketfd, ReadyFlag.c_str(), ReadyFlag.length(), 0);
                
@@ -71,7 +93,7 @@ void MyServer::receiveFile(int clientSocketfd) {
                 
         file.close();
 
-        std::string fileHash = calculateFileHash(file_path);
+        std::string fileHash = calculateFileHash((file_path+"/"+file_name));
         //std::cout<<"filehash : "<<fileHash<<std::endl;
 
         ::send(clientSocketfd, fileHash.c_str(), fileHash.length(), 0);
@@ -79,11 +101,11 @@ void MyServer::receiveFile(int clientSocketfd) {
         ::recv(clientSocketfd, buffer, sizeof(buffer), 0);
         //std::cout<<buffer<<std::endl;
         if(strcmp(buffer, "compare") == 0){
-            std::cout<<"File Received Successed! : "<<file_path<<std::endl;
+            std::cout<<"File Received Successed! : "<<(file_path+"/"+file_name)<<std::endl;
         }
         else if(strcmp(buffer, "diff") == 0){
             std::cout<<"diffrent file will remove file"<<std::endl;
-            if(std::remove(file_path.c_str()) != 0){
+            if(std::remove((file_path+"/"+file_name).c_str()) != 0){
                 std::cout<<"Remove File Error"<<std::endl;
             }
         }        

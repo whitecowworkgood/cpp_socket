@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(Socket_Project)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
 include_directories(includes)
@@ -28,5 +28,6 @@ add_executable("client" ${CLIENT_SOURCE})
 add_executable("server" ${SERVER_SOURCE})
 
 # 라이브러리 링크
-target_link_libraries(client pthread ssl crypto)
-target_link_libraries(server pthread ssl crypto)
+target_link_libraries(client pthread ssl crypto stdc++fs)
+target_link_libraries(server pthread ssl crypto stdc++fs)
+

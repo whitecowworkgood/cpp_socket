@@ -22,14 +22,34 @@ bool MyClient::connect(const std::string& ServerIp, const std::string& ServerPor
     return true;
 }
 bool MyClient::sendFile(const std::string& ServerPath, const std::string& File){
-    send(socketfd, (ServerPath+File).c_str(), (ServerPath+File).length(), 0);
-    recv(socketfd, buffer, sizeof(buffer),0);
+    std::filesystem::path p(File);
 
-    if(strcmp(buffer, "ready")==0){
-        buffer[1025] = {'\0',};
-        std::ifstream file(File, std::ios::binary);
 
-        if(file.is_open()){
+    if(std::filesystem::exists(p)){
+        if(File.find("\\") != std::string::npos){
+            //std::cout<<"in \\"<<std::endl;
+            int find = File.rfind("\\")+1;
+            File_name = File.substr(find, File.length()-find);
+            //std::cout<<File_name<<std::endl;
+        }
+        else if(File.find("/") != std::string::npos){
+            //std::cout<<"in /"<<std::endl;
+            int find = File.rfind("/")+1;
+            File_name = File.substr(find, File.length()-find);
+            //std::cout<<File_name<<std::endl;
+        }
+        else{
+            File_name = File;
+        }
+        send(socketfd, (ServerPath).c_str(), (ServerPath).length(), 0);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        send(socketfd, (File_name).c_str(), (File_name).length(), 0);
+        recv(socketfd, buffer, sizeof(buffer),0);
+
+        if(strcmp(buffer, "ready")==0){
+            std::ifstream file(File, std::ios::binary);
+            buffer[1025] = {'\0',};
+
             std::hash<std::string> hasher;
             std::streamsize bytesRead;
             do{
@@ -43,7 +63,7 @@ bool MyClient::sendFile(const std::string& ServerPath, const std::string& File){
                     std::cout<<"Failed to send data"<<std::endl;
                     file.close();
                     return false;
-                }
+                }  
 
                 ::recv(socketfd, buffer, sizeof(buffer), 0);
 
@@ -57,11 +77,11 @@ bool MyClient::sendFile(const std::string& ServerPath, const std::string& File){
             std::string fileHash = calculateFileHash(File);
             //std::cout<<"File Hash : "<<fileHash<<std::endl;
 
-           // std::cout<<"recv hash : "<<hash<<std::endl;
+            // std::cout<<"recv hash : "<<hash<<std::endl;
 
             if(std::string(hash) == fileHash){
                 ::send(socketfd, "compare", sizeof("compare"), 0);
-                 std::cout<<"File Upload Successed"<<std::endl;
+                std::cout<<"File Upload Successed"<<std::endl;
                         
             }
             else{
@@ -69,8 +89,15 @@ bool MyClient::sendFile(const std::string& ServerPath, const std::string& File){
                 std::cout<<"File Diffrent and will remove file at server"<<std::endl;
                 return false;
             }
-                   
         }
+        else{
+            close();
+        }
+    }
+    else{
+        //소켓 종료 관련 코드 추가 예정
+        std::cout<<"Socket Close"<<std::endl;
+        close();
     }
     return true;
 }

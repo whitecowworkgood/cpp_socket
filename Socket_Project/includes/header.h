@@ -17,10 +17,15 @@
 #include <iomanip>
 #include<sstream>
 #include<cstdio>
+#include <sys/stat.h>
+#include <filesystem>
+
+
 
 class MyClient{
     private:
         int socketfd;
+        std::string File_name;
         sockaddr_in serv_addr;
         char buffer[1025]={'\0',};
         char hash[128] = {'\0'};
@@ -41,6 +46,8 @@ class MyServer{
 
     private:
         int socketfd;
+        std::string file_path;
+        std::string file_name;
         std::vector<int> clientSocketfds;
         std::string ReadyFlag = "ready";
         char buffer[1025] = {'\0',};
