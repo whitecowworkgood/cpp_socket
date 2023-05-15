@@ -84,10 +84,14 @@ void MyServer::receiveFile(int clientSocketfd) {
                
         while(true){
             bytesRead = ::recv(clientSocketfd, buffer, sizeof(buffer), 0);
-            if(strcmp(buffer, "eof") == 0){
+            if(strcmp(buffer, "send_end") == 0){
                 break;
             }
-            file<<buffer;
+            //file<<buffer;
+            //std::cout<<buffer<<std::endl;
+            //std::cout<<"bytesRead : "<< bytesRead<<std::endl;
+            //std::cout<<"sizeof buffer : "<< sizeof(buffer)<<std::endl;
+            file.write(buffer, bytesRead);
             ::send(clientSocketfd, "received", sizeof("received"), 0);
         }
                 
@@ -105,9 +109,9 @@ void MyServer::receiveFile(int clientSocketfd) {
         }
         else if(strcmp(buffer, "diff") == 0){
             std::cout<<"diffrent file will remove file"<<std::endl;
-            if(std::remove((file_path+"/"+file_name).c_str()) != 0){
-                std::cout<<"Remove File Error"<<std::endl;
-            }
+            //if(std::remove((file_path+"/"+file_name).c_str()) != 0){
+               // std::cout<<"Remove File Error"<<std::endl;
+            //}
         }        
     }     
     ::close(clientSocketfd);

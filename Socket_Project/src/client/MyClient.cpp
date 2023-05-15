@@ -48,16 +48,17 @@ bool MyClient::sendFile(const std::string& ServerPath, const std::string& File){
 
         if(strcmp(buffer, "ready")==0){
             std::ifstream file(File, std::ios::binary);
-            buffer[1025] = {'\0',};
+            //
 
             std::hash<std::string> hasher;
             std::streamsize bytesRead;
             do{
+                buffer[1025] = {'\0',};
                 file.read(buffer, 1024);
                 bytesRead = file.gcount();
                 buffer[bytesRead] ='\0';
                         
-                ssize_t byteSent = ::send(socketfd, buffer, sizeof(buffer), 0);
+                ssize_t byteSent = ::send(socketfd, buffer, bytesRead, 0);
                         
                 if(byteSent<=0){
                     std::cout<<"Failed to send data"<<std::endl;
@@ -69,7 +70,7 @@ bool MyClient::sendFile(const std::string& ServerPath, const std::string& File){
 
             }while(!file.eof());
 
-            send(socketfd, "eof", sizeof("eof"), 0);
+            send(socketfd, "send_end", sizeof("send_end"), 0);
             file.close();
 
             ::recv(socketfd, hash, sizeof(hash), 0);
